@@ -1,0 +1,27 @@
+{
+  "name": "monorepo-graph",
+  "main": "dist/cli.mjs",
+  "type": "module",
+  "bin": {
+    "mgraph": "dist/cli.mjs"
+  },
+  "scripts": {
+    "start": "tsc -w -p .",
+    "build": "tsc -p .",
+    "perms": "chmod +x dist/cli.mjs",
+    "link-global": "yarn link --global"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@types/node": "^18.11.11",
+    "@types/yargs": "^17.0.16",
+    "prettier": "^2.8.0",
+    "typescript": "^4.9.3"
+  },
+  "dependencies": {
+    "globby": "^13.1.2",
+    "yargs": "^17.6.2"
+  }
+}
