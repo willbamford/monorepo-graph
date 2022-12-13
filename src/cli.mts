@@ -39,10 +39,38 @@ import { byName } from "./utils.mjs";
       (packageImport) => packageImport.importType === "side-effect"
     );
 
-    log(`defaultImports.length`, defaultImports.length);
-    log(`namedImports.length`, namedImports.length);
-    log(`namespaceImports.length`, namespaceImports.length);
-    log(`sideEffectImports.length`, sideEffectImports.length);
+    // log(`defaultImports.length`, defaultImports.length);
+    // log(`namedImports.length`, namedImports.length);
+    // log(`namespaceImports.length`, namespaceImports.length);
+    // log(`sideEffectImports.length`, sideEffectImports.length);
+
+    const results: { [name: string]: { count: number; dependants: string[] } } =
+      {};
+    namedImports
+      .filter((packageImport) => {
+        return packageImport.importModule === "@moonpig/web-common";
+      })
+      .forEach((namedImport) => {
+        if (!results[namedImport.importName]) {
+          results[namedImport.importName] = { count: 0, dependants: [] };
+        }
+        results[namedImport.importName].count += 1;
+        results[namedImport.importName].dependants.push(
+          namedImport.packageName
+        );
+      });
+
+    const sortedResults = Object.entries(results).sort((a, b) => {
+      if (a[1].count > b[1].count) return -1;
+      else if (a[1].count < b[1].count) return 1;
+      return 0;
+    });
+
+    sortedResults.forEach((result) => {
+      const name = result[0];
+      const value = result[1];
+      log(name, value.count, value.dependants);
+    });
 
     log(`Length: ${packageImports.length}`);
 
