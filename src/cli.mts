@@ -29,37 +29,39 @@ import path from "path";
     );
 
     const defaultImports = packageImports.filter(
-      (packageImport) => packageImport.importType === "default"
+      (packageImport) => packageImport.importKind === "default"
     );
     const namedImports = packageImports.filter(
-      (packageImport) => packageImport.importType === "named"
+      (packageImport) => packageImport.importKind === "named"
     );
     const namespaceImports = packageImports.filter(
-      (packageImport) => packageImport.importType === "namespace"
+      (packageImport) => packageImport.importKind === "namespace"
     );
     const sideEffectImports = packageImports.filter(
-      (packageImport) => packageImport.importType === "side-effect"
+      (packageImport) => packageImport.importKind === "side-effect"
     );
 
-    // log(`defaultImports.length`, defaultImports.length);
-    // log(`namedImports.length`, namedImports.length);
-    // log(`namespaceImports.length`, namespaceImports.length);
-    // log(`sideEffectImports.length`, sideEffectImports.length);
+    log(`defaultImports.length`, defaultImports.length);
+    log(`namedImports.length`, namedImports.length);
+    log(`namespaceImports.length`, namespaceImports.length);
+    log(`sideEffectImports.length`, sideEffectImports.length);
 
     const results: {
       [name: string]: {
+        type: string | null;
         count: { overall: number; dependants: { [name: string]: number } };
       };
     } = {};
     namedImports
       .filter((packageImport) => {
         return true;
-        // return packageImport.importModule.startsWith("...");
+        // e.g. return packageImport.importModule.startsWith("@org/xyz");
       })
       .forEach((namedImport) => {
         const name = `${namedImport.importModule}:${namedImport.importName}`;
         if (!results[name]) {
           results[name] = {
+            type: namedImport.importType,
             count: {
               overall: 0,
               dependants: {},

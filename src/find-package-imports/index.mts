@@ -12,14 +12,14 @@ export const findPackageImports = async (
   cacheWrite: boolean,
   cacheRead: boolean
 ): Promise<PackageImports[]> => {
-  const dataDir = path.join(process.env.PWD || "", "data", packageDir);
+  const cacheDir = path.join(process.env.PWD || "", "cache", packageDir);
 
   if (cacheRead) {
-    const dataPath = path.join(dataDir, "data.json");
-    if (fs.existsSync(dataPath)) {
+    const cachePath = path.join(cacheDir, "cache.json");
+    if (fs.existsSync(cachePath)) {
       log(`Reading cache for ${packageDir}`);
       const result: PackageImports[] = JSON.parse(
-        fs.readFileSync(dataPath, { encoding: "utf-8" })
+        fs.readFileSync(cachePath, { encoding: "utf-8" })
       );
       return result;
     } else {
@@ -33,12 +33,12 @@ export const findPackageImports = async (
   const packagePath = path.join(rootPath, packageDir);
   const tsConfigFilePath = path.join(packagePath, "tsconfig.json");
   if (!fs.existsSync(tsConfigFilePath)) {
-    log(
+    logDebug(
       `${packageName} does not appear to be a TypeScript module (no root tsconfig.json found)`
     );
     return [];
   }
-  logDebug(`Found tsconfig.json for ${packageName}`);
+  log(`Processing ${packageName} (found tsconfig.json)`);
 
   const packageImports: PackageImports[] = [];
 
@@ -76,8 +76,9 @@ export const findPackageImports = async (
           packageName,
           sourceFile: sourceFilePath,
           importModule,
-          importType: "namespace",
+          importKind: "namespace",
           importName: namespaceImport.getText(),
+          importType: namespaceImport.getType().getApparentType().getText(),
         });
       }
 
@@ -92,8 +93,9 @@ export const findPackageImports = async (
             packageName,
             sourceFile: sourceFilePath,
             importModule,
-            importType: "named",
+            importKind: "named",
             importName: parts[0],
+            importType: namedImport.getType().getApparentType().getText(),
           });
         });
       }
@@ -103,8 +105,9 @@ export const findPackageImports = async (
           packageName,
           sourceFile: sourceFilePath,
           importModule,
-          importType: "default",
+          importKind: "default",
           importName: defaultImport.getText(),
+          importType: defaultImport.getType().getApparentType().getText(),
         });
       }
 
@@ -113,8 +116,9 @@ export const findPackageImports = async (
           packageName,
           sourceFile: sourceFile.getFilePath(),
           importModule,
-          importType: "side-effect",
+          importKind: "side-effect",
           importName: "",
+          importType: null,
         });
       }
     });
@@ -122,8 +126,8 @@ export const findPackageImports = async (
 
   if (cacheWrite) {
     logDebug(`Writing cache for ${packageDir}`);
-    fs.mkdirSync(dataDir, { recursive: true });
-    const dataPath = path.join(dataDir, "data.json");
+    fs.mkdirSync(cacheDir, { recursive: true });
+    const dataPath = path.join(cacheDir, "data.json");
     fs.writeFileSync(dataPath, JSON.stringify(packageImports, null, 2), {
       encoding: "utf-8",
     });

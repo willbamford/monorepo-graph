@@ -1,4 +1,4 @@
 dist
 node_modules
-data
+cache
 results.json

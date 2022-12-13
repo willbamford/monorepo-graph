@@ -1,4 +1,4 @@
-const LOG_LEVEL = 0;
+const LOG_LEVEL = 1;
 
 export const log = (...args: Parameters<typeof console.log>) => {
   if (LOG_LEVEL < 2) {
