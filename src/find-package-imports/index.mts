@@ -30,7 +30,8 @@ export const findPackageImports = async (
   const packageJson = await loadPackageJson(rootPath, packageDir);
   const packageName = packageJson.name;
 
-  const tsConfigFilePath = path.join(rootPath, packageDir, "tsconfig.json");
+  const packagePath = path.join(rootPath, packageDir);
+  const tsConfigFilePath = path.join(packagePath, "tsconfig.json");
   if (!fs.existsSync(tsConfigFilePath)) {
     log(
       `${packageName} does not appear to be a TypeScript module (no root tsconfig.json found)`
@@ -47,6 +48,12 @@ export const findPackageImports = async (
 
   const sourceFiles = project.getSourceFiles();
   for (const sourceFile of sourceFiles) {
+    const sourceFilePath = sourceFile.getFilePath();
+    if (!sourceFilePath.startsWith(packagePath)) {
+      logDebug(`Ignoring ${sourceFilePath}, not in ${packagePath}`);
+      continue;
+    }
+
     const importDeclarations = sourceFile.getImportDeclarations();
     importDeclarations.forEach((importDeclaration) => {
       const importClause = importDeclaration.getImportClause();
@@ -63,7 +70,6 @@ export const findPackageImports = async (
       const namedImports = importClause?.getNamedImports();
       const namespaceImport = importClause?.getNamespaceImport();
       const defaultImport = importClause?.getDefaultImport();
-      const sourceFilePath = sourceFile.getFilePath();
 
       if (namespaceImport) {
         packageImports.push({
@@ -138,12 +144,7 @@ export const findAllInternalPackageImports = async (
     await Promise.all(
       Object.keys(packageByName).map((name) => {
         const p = packageByName[name];
-        return findPackageImports(
-          rootPath,
-          packageByName[name].dir,
-          cacheWrite,
-          cacheRead
-        );
+        return findPackageImports(rootPath, p.dir, cacheWrite, cacheRead);
       })
     )
   ).flat();

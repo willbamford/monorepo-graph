@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+import fs from "fs";
 import { logDebug, log, logError } from "./log.mjs";
 import { findPackages } from "./find-packages/index.mjs";
 import { findAllInternalPackageImports } from "./find-package-imports/index.mjs";
 import { getArgv } from "./argv.mjs";
 import { byName } from "./utils.mjs";
+import path from "path";
 (async () => {
   const argv = await getArgv();
 
@@ -44,33 +46,49 @@ import { byName } from "./utils.mjs";
     // log(`namespaceImports.length`, namespaceImports.length);
     // log(`sideEffectImports.length`, sideEffectImports.length);
 
-    const results: { [name: string]: { count: number; dependants: string[] } } =
-      {};
+    const results: {
+      [name: string]: {
+        count: { overall: number; dependants: { [name: string]: number } };
+      };
+    } = {};
     namedImports
       .filter((packageImport) => {
-        return packageImport.importModule === "@moonpig/web-common";
+        return true;
+        // return packageImport.importModule.startsWith("...");
       })
       .forEach((namedImport) => {
-        if (!results[namedImport.importName]) {
-          results[namedImport.importName] = { count: 0, dependants: [] };
+        const name = `${namedImport.importModule}:${namedImport.importName}`;
+        if (!results[name]) {
+          results[name] = {
+            count: {
+              overall: 0,
+              dependants: {},
+            },
+          };
         }
-        results[namedImport.importName].count += 1;
-        results[namedImport.importName].dependants.push(
-          namedImport.packageName
-        );
+        results[name].count.overall += 1;
+
+        if (!results[name].count.dependants[namedImport.packageName]) {
+          results[name].count.dependants[namedImport.packageName] = 0;
+        }
+        results[name].count.dependants[namedImport.packageName] += 1;
       });
 
     const sortedResults = Object.entries(results).sort((a, b) => {
-      if (a[1].count > b[1].count) return -1;
-      else if (a[1].count < b[1].count) return 1;
+      if (a[1].count.overall > b[1].count.overall) return -1;
+      else if (a[1].count.overall < b[1].count.overall) return 1;
       return 0;
     });
 
     sortedResults.forEach((result) => {
       const name = result[0];
       const value = result[1];
-      log(name, value.count, value.dependants);
+      log(name, value.count.overall, value.count.dependants);
     });
+
+    const resultsPath = path.join(process.env.PWD || "", "results.json");
+    logDebug(`Writing results to ${resultsPath}...`);
+    fs.writeFileSync(resultsPath, JSON.stringify(sortedResults, null, 2));
 
     log(`Length: ${packageImports.length}`);
 
