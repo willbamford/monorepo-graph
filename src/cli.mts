@@ -2,37 +2,9 @@
 
 import { logDebug, log, logError } from "./log.mjs";
 import { findPackages } from "./find-packages/index.mjs";
-import { findPackageImports } from "./find-package-imports/index.mjs";
+import { findAllInternalPackageImports } from "./find-package-imports/index.mjs";
 import { getArgv } from "./argv.mjs";
-import path, { resolve } from "path";
 import { byName } from "./utils.mjs";
-import { PackageImports, PackageWithDeps } from "./types.mjs";
-
-const findAllInternalPackageImports = async (
-  rootPath: string,
-  packageByName: {
-    [id: string]: PackageWithDeps;
-  }
-): Promise<PackageImports[]> => {
-  const all = (
-    await Promise.all(
-      Object.keys(packageByName).map((name) => {
-        const p = packageByName[name];
-        return findPackageImports(rootPath, packageByName[name].dir);
-      })
-    )
-  ).flat();
-
-  const allInternal = all.filter((packageImport) => {
-    if (packageByName[packageImport.importModule] !== undefined) {
-      return true;
-    }
-    return false;
-  });
-
-  return allInternal;
-};
-
 (async () => {
   const argv = await getArgv();
 
@@ -44,14 +16,33 @@ const findAllInternalPackageImports = async (
 
     const packageByName = byName(packages);
 
+    const cacheWrite = true;
+    const cacheRead = true;
+
     const packageImports = await findAllInternalPackageImports(
       rootPath,
-      packageByName
+      packageByName,
+      cacheWrite,
+      cacheRead
     );
 
-    // packageImports.forEach((packageImport) => {
-    //   log(packageImport);
-    // });
+    const defaultImports = packageImports.filter(
+      (packageImport) => packageImport.importType === "default"
+    );
+    const namedImports = packageImports.filter(
+      (packageImport) => packageImport.importType === "named"
+    );
+    const namespaceImports = packageImports.filter(
+      (packageImport) => packageImport.importType === "namespace"
+    );
+    const sideEffectImports = packageImports.filter(
+      (packageImport) => packageImport.importType === "side-effect"
+    );
+
+    log(`defaultImports.length`, defaultImports.length);
+    log(`namedImports.length`, namedImports.length);
+    log(`namespaceImports.length`, namespaceImports.length);
+    log(`sideEffectImports.length`, sideEffectImports.length);
 
     log(`Length: ${packageImports.length}`);
 

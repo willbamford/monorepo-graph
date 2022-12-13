@@ -1,15 +1,32 @@
 import fs from "fs";
 import path from "path";
-import { loadPackageJson } from "../utils.mjs";
 
+import { loadPackageJson } from "../utils.mjs";
 import { Project, SyntaxKind } from "ts-morph";
 import { logDebug, log, logError } from "../log.mjs";
-import { PackageImports } from "../types.mjs";
+import { PackageImports, PackageWithDeps } from "../types.mjs";
 
 export const findPackageImports = async (
   rootPath: string,
-  packageDir: string
+  packageDir: string,
+  cacheWrite: boolean,
+  cacheRead: boolean
 ): Promise<PackageImports[]> => {
+  const dataDir = path.join(process.env.PWD || "", "data", packageDir);
+
+  if (cacheRead) {
+    const dataPath = path.join(dataDir, "data.json");
+    if (fs.existsSync(dataPath)) {
+      log(`Reading cache for ${packageDir}`);
+      const result: PackageImports[] = JSON.parse(
+        fs.readFileSync(dataPath, { encoding: "utf-8" })
+      );
+      return result;
+    } else {
+      logDebug(`No cache for ${packageDir}`);
+    }
+  }
+
   const packageJson = await loadPackageJson(rootPath, packageDir);
   const packageName = packageJson.name;
 
@@ -96,5 +113,47 @@ export const findPackageImports = async (
       }
     });
   }
+
+  if (cacheWrite) {
+    logDebug(`Writing cache for ${packageDir}`);
+    fs.mkdirSync(dataDir, { recursive: true });
+    const dataPath = path.join(dataDir, "data.json");
+    fs.writeFileSync(dataPath, JSON.stringify(packageImports, null, 2), {
+      encoding: "utf-8",
+    });
+  }
+
   return packageImports;
+};
+
+export const findAllInternalPackageImports = async (
+  rootPath: string,
+  packageByName: {
+    [id: string]: PackageWithDeps;
+  },
+  cacheWrite: boolean,
+  cacheRead: boolean
+): Promise<PackageImports[]> => {
+  const all = (
+    await Promise.all(
+      Object.keys(packageByName).map((name) => {
+        const p = packageByName[name];
+        return findPackageImports(
+          rootPath,
+          packageByName[name].dir,
+          cacheWrite,
+          cacheRead
+        );
+      })
+    )
+  ).flat();
+
+  const allInternal = all.filter((packageImport) => {
+    if (packageByName[packageImport.importModule] !== undefined) {
+      return true;
+    }
+    return false;
+  });
+
+  return allInternal;
 };
