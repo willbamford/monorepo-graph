@@ -16,6 +16,10 @@ import path from "path";
     const packages = await findPackages(rootPath);
     log(`Found ${packages.length} package(s) in ${rootPath}`);
 
+    packages.forEach((pkg) => {
+      console.log(pkg.name);
+    });
+
     const packageByName = byName(packages);
 
     const cacheWrite = true;
@@ -54,8 +58,9 @@ import path from "path";
     } = {};
     namedImports
       .filter((packageImport) => {
-        return true;
+        // return true;
         // e.g. return packageImport.importModule.startsWith("@org/xyz");
+        return !packageImport.importModule.startsWith("@moonpig/web-core-");
       })
       .forEach((namedImport) => {
         const name = `${namedImport.importModule}:${namedImport.importName}`;
@@ -88,13 +93,13 @@ import path from "path";
       log(name, value.count.overall, value.count.dependants);
     });
 
-    const resultsPath = path.join(process.env.PWD || "", "results.json");
-    logDebug(`Writing results to ${resultsPath}...`);
-    fs.writeFileSync(resultsPath, JSON.stringify(sortedResults, null, 2));
+    const reportPath = path.join(process.env.PWD || "", "report.json");
+    logDebug(`Writing report to ${reportPath}...`);
+    fs.writeFileSync(reportPath, JSON.stringify(sortedResults, null, 2));
 
     log(`Length: ${packageImports.length}`);
 
-    // reportCycles(packages);
+    reportCycles(packages);
   } catch (e) {
     logError(e);
   }

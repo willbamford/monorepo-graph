@@ -3,7 +3,7 @@
   "main": "dist/cli.mjs",
   "type": "module",
   "bin": {
-    "mgraph": "dist/cli.mjs"
+    "mgraph": "./dist/cli.mjs"
   },
   "scripts": {
     "start": "tsc -w -p .",
