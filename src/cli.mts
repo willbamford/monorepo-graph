@@ -7,6 +7,7 @@ import { findAllInternalPackageImports } from "./find-package-imports/index.mjs"
 import { getArgv } from "./argv.mjs";
 import { byName } from "./utils.mjs";
 import path from "path";
+import { reportCycles } from "./report-cycles/index.mjs";
 (async () => {
   const argv = await getArgv();
 
@@ -15,6 +16,10 @@ import path from "path";
   try {
     const packages = await findPackages(rootPath);
     log(`Found ${packages.length} package(s) in ${rootPath}`);
+
+    reportCycles(packages);
+
+    return;
 
     packages.forEach((pkg) => {
       console.log(pkg.name);
@@ -60,7 +65,10 @@ import path from "path";
       .filter((packageImport) => {
         // return true;
         // e.g. return packageImport.importModule.startsWith("@org/xyz");
-        return !packageImport.importModule.startsWith("@moonpig/web-core-");
+        return (
+          !packageImport.importModule.startsWith("@moonpig/web-core-") &&
+          !packageImport.importModule.startsWith("@moonpig/web-shared-")
+        );
       })
       .forEach((namedImport) => {
         const name = `${namedImport.importModule}:${namedImport.importName}`;
@@ -98,8 +106,6 @@ import path from "path";
     fs.writeFileSync(reportPath, JSON.stringify(sortedResults, null, 2));
 
     log(`Length: ${packageImports.length}`);
-
-    reportCycles(packages);
   } catch (e) {
     logError(e);
   }
